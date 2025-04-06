@@ -1,5 +1,4 @@
 import os
-import faiss
 import numpy as np
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
@@ -8,6 +7,48 @@ from sklearn.manifold import TSNE
 from scipy.spatial.distance import cdist
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
+
+"""
+Análise Exploratória de Banco Vetorial FAISS com embeddings da OpenAI
+
+Autores: 
+- Caio Alexandre V.B. de Andrade - 10298313
+- Nicolas Fernandes Melnik - 10402170
+- Gustavo Cunha Ciola - 10402397
+Data: 05/04/202025
+Projeto: Sistema RAG (Retrieval-Augmented Generation) sobre Geriatria Clínica
+
+Descrição:
+Este script realiza análises exploratórias dos embeddings gerados a partir do livro 
+"Fundamentos de Geriatria Clínica" armazenados em um banco vetorial FAISS. São realizadas 
+as seguintes análises:
+
+1. PCA (Principal Component Analysis):
+   - Visualiza a distribuição geral dos embeddings em um espaço bidimensional.
+
+2. t-SNE (t-distributed Stochastic Neighbor Embedding):
+   - Detecta visualmente agrupamentos (clusters) não-lineares em uma amostra dos embeddings.
+
+3. Histograma das Distâncias Euclidianas:
+   - Avalia a densidade e distribuição das distâncias entre embeddings para identificar agrupamentos e dispersão geral.
+
+4. Densidade local baseada em k-vizinhos mais próximos (k-NN):
+   - Mede a concentração local dos embeddings, identificando regiões de alta densidade e possíveis outliers.
+
+Dependências principais:
+- langchain, langchain-community, langchain-openai
+- faiss-cpu, numpy, scipy
+- scikit-learn (PCA e t-SNE)
+- matplotlib (visualizações)
+
+Pré-requisitos:
+- Banco FAISS já criado com embeddings gerados via OpenAI.
+- Arquivo .env contendo a variável OPENAI_API_KEY com a chave da OpenAI.
+
+Execução:
+- Certifique-se de ter as dependências instaladas e execute o script diretamente:
+  python analise.py
+"""
 
 # 1. Carregar variáveis de ambiente
 load_dotenv()
