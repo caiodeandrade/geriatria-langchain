@@ -44,3 +44,4 @@ results = faiss_store.similarity_search(query, k=3)
 for result in results:
     print("retorno da busca\n\n")
     print(result.page_content)
+
