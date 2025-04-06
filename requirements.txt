@@ -6,3 +6,9 @@ faiss-cpu
 python-dotenv
 transformers
 pypdf
+
+# Visualização e análise
+matplotlib
+scikit-learn
+numpy
+scipy
