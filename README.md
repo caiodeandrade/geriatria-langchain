@@ -5,14 +5,12 @@
 ...
 
 
-<hr>
 
 ## Requisitos
 - Python 3.8 ou superior instalado em seu ambiente.
 - Uma chave de API da OpenAI (pode ser obtida aqui).
 - pip para instalação de dependências.
 
-<hr>
 
 ## Passo a passo para rodar localmente
 
@@ -57,7 +55,6 @@ Coloque seu PDF na pasta assets/ e ajuste o caminho do arquivo na variável pdf_
 
 O servidor estará disponível em http://localhost:5000.
 
-<hr>
 
 ## Como usar
 
