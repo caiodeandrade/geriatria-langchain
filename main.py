@@ -16,7 +16,7 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__)
 
 # Define os caminhos dos arquivos necessários: PDF de origem e diretório do índice FAISS
-pdf_path = "assets/Fundamentos_de_geriatria_19_115.pdf"
+pdf_path = "assets/Fundamentos_de_geriatria.pdf"
 faiss_path = "pdf_faiss_index"
 
 # Função para carregar um índice vetorial já existente ou criar um novo a partir do PDF
