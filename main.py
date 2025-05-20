@@ -1,4 +1,5 @@
 import os
+import glob
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
@@ -15,29 +16,38 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 # Inicializa o aplicativo Flask, responsável por receber requisições HTTP
 app = Flask(__name__)
 
-# Define os caminhos dos arquivos necessários: PDF de origem e diretório do índice FAISS
-pdf_path = "assets/Fundamentos_de_geriatria.pdf"
+# Define o diretório dos PDFs de origem e diretório do índice FAISS
+pdfs_dir = "assets"
 faiss_path = "pdf_faiss_index"
 
-# Função para carregar um índice vetorial já existente ou criar um novo a partir do PDF
+
+# Função para carregar um índice vetorial já existente ou criar um novo a partir dos PDFs
 def load_or_create_faiss_index():
     # Se já existe um índice FAISS salvo, carrega do disco
     if os.path.exists(faiss_path):
+        print("Usou atual")
         return FAISS.load_local(
             faiss_path,
             OpenAIEmbeddings(openai_api_key=openai_api_key),
             allow_dangerous_deserialization=True,
         )
     else:
-        # Caso não exista, processa o PDF do zero
-        # 1. Carrega o PDF como lista de documentos (cada página é um documento)
-        loader = PyPDFLoader(pdf_path)
-        docs = loader.load()
+        print("Criou novo")
+        # Caso não exista, processa todos os PDFs da pasta 'assets'
+        pdf_files = glob.glob(os.path.join(pdfs_dir, "*.pdf"))
+        if not pdf_files:
+            raise FileNotFoundError("Nenhum arquivo PDF encontrado na pasta 'assets'.")
 
-        # 2. Divide o texto em blocos menores (chunking) para facilitar a vetorização
+        # 1. Carrega todos os PDFs como lista de documentos
+        docs = []
+        for pdf_file in pdf_files:
+            loader = PyPDFLoader(pdf_file)
+            docs.extend(loader.load())
+
+        # 2. Divide o texto em blocos menores (chunking)
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,     # Tamanho do bloco
-            chunk_overlap=200,   # Sobreposição entre blocos para não perder contexto
+            chunk_size=1000,
+            chunk_overlap=200,
             length_function=len,
             is_separator_regex=False
         )
@@ -51,13 +61,14 @@ def load_or_create_faiss_index():
         vectorstore.save_local(faiss_path)
         return vectorstore
 
+
 # Carrega ou cria o banco vetorial FAISS ao iniciar o servidor
 vectorstore = load_or_create_faiss_index()
 
 # Cria a cadeia de perguntas e respostas (RAG) conectando o modelo LLM ao retriever
 qa_chain = RetrievalQA.from_chain_type(
-    llm=OpenAI(openai_api_key=openai_api_key),       # Instância do modelo LLM
-    retriever=vectorstore.as_retriever()             # Retriever: busca trechos relevantes no índice FAISS
+    llm=OpenAI(openai_api_key=openai_api_key),
+    retriever=vectorstore.as_retriever()
 )
 
 # Define o endpoint da API para receber perguntas (POST /query)
@@ -67,9 +78,9 @@ def query():
     question = data.get("question")  # Extrai a pergunta do corpo da requisição
     if not question:
         return jsonify({"error": "Missing 'question' in request body"}), 400
-    # Roda o pipeline de perguntas e respostas e retorna a resposta
     answer = qa_chain.run(question)
     return jsonify({"answer": answer})
+
 
 # Inicia o servidor Flask se o script for executado diretamente
 if __name__ == "__main__":

@@ -1,0 +1,13 @@
+<changelist name="Changes1" date="1747769396049" recycled="false">
+  <option name="PATH" value="$PROJECT_DIR$/.idea/shelf/Changes1/shelved.patch" />
+  <option name="DESCRIPTION" value="Changes" />
+  <binary>
+    <option name="BEFORE_PATH" value="assets/Fundamentos_de_geriatria.pdf" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="pdf_faiss_index/index.faiss" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="pdf_faiss_index/index.pkl" />
+  </binary>
+</changelist>

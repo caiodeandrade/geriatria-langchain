@@ -1,0 +1,235 @@
+Index: main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import os\nfrom flask import Flask, request, jsonify\nfrom dotenv import load_dotenv\nfrom langchain_community.document_loaders import PyPDFLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\nfrom langchain_community.vectorstores import FAISS\nfrom langchain_openai import OpenAIEmbeddings\nfrom langchain.chains import RetrievalQA\nfrom langchain_community.llms import OpenAI\n\n# Carrega variáveis de ambiente do arquivo .env\nload_dotenv()\nopenai_api_key = os.getenv(\"OPENAI_API_KEY\")\n\n# Inicializa o aplicativo Flask, responsável por receber requisições HTTP\napp = Flask(__name__)\n\n# Define os caminhos dos arquivos necessários: PDF de origem e diretório do índice FAISS\npdf_path = \"assets/Fundamentos_de_geriatria.pdf\"\nfaiss_path = \"pdf_faiss_index\"\n\n# Função para carregar um índice vetorial já existente ou criar um novo a partir do PDF\ndef load_or_create_faiss_index():\n    # Se já existe um índice FAISS salvo, carrega do disco\n    if os.path.exists(faiss_path):\n        return FAISS.load_local(\n            faiss_path,\n            OpenAIEmbeddings(openai_api_key=openai_api_key),\n            allow_dangerous_deserialization=True,\n        )\n    else:\n        # Caso não exista, processa o PDF do zero\n        # 1. Carrega o PDF como lista de documentos (cada página é um documento)\n        loader = PyPDFLoader(pdf_path)\n        docs = loader.load()\n\n        # 2. Divide o texto em blocos menores (chunking) para facilitar a vetorização\n        text_splitter = RecursiveCharacterTextSplitter(\n            chunk_size=1000,     # Tamanho do bloco\n            chunk_overlap=200,   # Sobreposição entre blocos para não perder contexto\n            length_function=len,\n            is_separator_regex=False\n        )\n        split_docs = text_splitter.split_documents(docs)\n\n        # 3. Vetoriza os blocos usando embeddings do OpenAI\n        embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)\n\n        # 4. Cria e salva o banco vetorial FAISS localmente\n        vectorstore = FAISS.from_documents(split_docs, embeddings)\n        vectorstore.save_local(faiss_path)\n        return vectorstore\n\n# Carrega ou cria o banco vetorial FAISS ao iniciar o servidor\nvectorstore = load_or_create_faiss_index()\n\n# Cria a cadeia de perguntas e respostas (RAG) conectando o modelo LLM ao retriever\nqa_chain = RetrievalQA.from_chain_type(\n    llm=OpenAI(openai_api_key=openai_api_key),       # Instância do modelo LLM\n    retriever=vectorstore.as_retriever()             # Retriever: busca trechos relevantes no índice FAISS\n)\n\n# Define o endpoint da API para receber perguntas (POST /query)\n@app.route(\"/query\", methods=[\"POST\"])\ndef query():\n    data = request.json\n    question = data.get(\"question\")  # Extrai a pergunta do corpo da requisição\n    if not question:\n        return jsonify({\"error\": \"Missing 'question' in request body\"}), 400\n    # Roda o pipeline de perguntas e respostas e retorna a resposta\n    answer = qa_chain.run(question)\n    return jsonify({\"answer\": answer})\n\n# Inicia o servidor Flask se o script for executado diretamente\nif __name__ == \"__main__\":\n    app.run(debug=True)
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main.py b/main.py
+--- a/main.py	(revision 15d40326571b95cdc817b9103a764e8691ba8442)
++++ b/main.py	(date 1747396252042)
+@@ -1,4 +1,5 @@
+ import os
++import glob
+ from flask import Flask, request, jsonify
+ from dotenv import load_dotenv
+ from langchain_community.document_loaders import PyPDFLoader
+@@ -15,29 +16,38 @@
+ # Inicializa o aplicativo Flask, responsável por receber requisições HTTP
+ app = Flask(__name__)
+ 
+-# Define os caminhos dos arquivos necessários: PDF de origem e diretório do índice FAISS
+-pdf_path = "assets/Fundamentos_de_geriatria.pdf"
++# Define o diretório dos PDFs de origem e diretório do índice FAISS
++pdfs_dir = "assets"
+ faiss_path = "pdf_faiss_index"
+ 
+-# Função para carregar um índice vetorial já existente ou criar um novo a partir do PDF
++
++# Função para carregar um índice vetorial já existente ou criar um novo a partir dos PDFs
+ def load_or_create_faiss_index():
+     # Se já existe um índice FAISS salvo, carrega do disco
+     if os.path.exists(faiss_path):
++        print("Usou atual")
+         return FAISS.load_local(
+             faiss_path,
+             OpenAIEmbeddings(openai_api_key=openai_api_key),
+             allow_dangerous_deserialization=True,
+         )
+     else:
+-        # Caso não exista, processa o PDF do zero
+-        # 1. Carrega o PDF como lista de documentos (cada página é um documento)
+-        loader = PyPDFLoader(pdf_path)
+-        docs = loader.load()
++        print("Criou novo")
++        # Caso não exista, processa todos os PDFs da pasta 'assets'
++        pdf_files = glob.glob(os.path.join(pdfs_dir, "*.pdf"))
++        if not pdf_files:
++            raise FileNotFoundError("Nenhum arquivo PDF encontrado na pasta 'assets'.")
+ 
+-        # 2. Divide o texto em blocos menores (chunking) para facilitar a vetorização
++        # 1. Carrega todos os PDFs como lista de documentos
++        docs = []
++        for pdf_file in pdf_files:
++            loader = PyPDFLoader(pdf_file)
++            docs.extend(loader.load())
++
++        # 2. Divide o texto em blocos menores (chunking)
+         text_splitter = RecursiveCharacterTextSplitter(
+-            chunk_size=1000,     # Tamanho do bloco
+-            chunk_overlap=200,   # Sobreposição entre blocos para não perder contexto
++            chunk_size=1000,
++            chunk_overlap=200,
+             length_function=len,
+             is_separator_regex=False
+         )
+@@ -51,13 +61,14 @@
+         vectorstore.save_local(faiss_path)
+         return vectorstore
+ 
++
+ # Carrega ou cria o banco vetorial FAISS ao iniciar o servidor
+ vectorstore = load_or_create_faiss_index()
+ 
+ # Cria a cadeia de perguntas e respostas (RAG) conectando o modelo LLM ao retriever
+ qa_chain = RetrievalQA.from_chain_type(
+-    llm=OpenAI(openai_api_key=openai_api_key),       # Instância do modelo LLM
+-    retriever=vectorstore.as_retriever()             # Retriever: busca trechos relevantes no índice FAISS
++    llm=OpenAI(openai_api_key=openai_api_key),
++    retriever=vectorstore.as_retriever()
+ )
+ 
+ # Define o endpoint da API para receber perguntas (POST /query)
+@@ -67,10 +78,10 @@
+     question = data.get("question")  # Extrai a pergunta do corpo da requisição
+     if not question:
+         return jsonify({"error": "Missing 'question' in request body"}), 400
+-    # Roda o pipeline de perguntas e respostas e retorna a resposta
+     answer = qa_chain.run(question)
+     return jsonify({"answer": answer})
+ 
++
+ # Inicia o servidor Flask se o script for executado diretamente
+ if __name__ == "__main__":
+     app.run(debug=True)
+\ No newline at end of file
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"AutoImportSettings\">\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\n  </component>\n  <component name=\"ChangeListManager\">\n    <list default=\"true\" id=\"e522e9c3-cac6-47f3-9877-ef926f8c605c\" name=\"Changes\" comment=\"\">\n      <change afterPath=\"$PROJECT_DIR$/.idea/geriatria-langchain.iml\" afterDir=\"false\" />\n      <change afterPath=\"$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml\" afterDir=\"false\" />\n      <change afterPath=\"$PROJECT_DIR$/.idea/modules.xml\" afterDir=\"false\" />\n      <change afterPath=\"$PROJECT_DIR$/.idea/vcs.xml\" afterDir=\"false\" />\n      <change afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\n    </list>\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\n  </component>\n  <component name=\"FileTemplateManagerImpl\">\n    <option name=\"RECENT_TEMPLATES\">\n      <list>\n        <option value=\"Python Script\" />\n      </list>\n    </option>\n  </component>\n  <component name=\"Git.Settings\">\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\n  </component>\n  <component name=\"ProjectColorInfo\"><![CDATA[{\n  \"associatedIndex\": 5\n}]]></component>\n  <component name=\"ProjectId\" id=\"2vKRUy29x9w2NtWfKjLIbEzREDw\" />\n  <component name=\"ProjectLevelVcsManager\" settingsEditedManually=\"true\">\n    <ConfirmationsSetting value=\"1\" id=\"Add\" />\n  </component>\n  <component name=\"ProjectViewState\">\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\n    <option name=\"showLibraryContents\" value=\"true\" />\n  </component>\n  <component name=\"PropertiesComponent\"><![CDATA[{\n  \"keyToString\": {\n    \"Python.main.executor\": \"Run\",\n    \"RunOnceActivity.ShowReadmeOnStart\": \"true\",\n    \"RunOnceActivity.git.unshallow\": \"true\",\n    \"git-widget-placeholder\": \"master\"\n  }\n}]]></component>\n  <component name=\"RecentsManager\">\n    <key name=\"MoveFile.RECENT_KEYS\">\n      <recent name=\"$PROJECT_DIR$/assets\" />\n    </key>\n  </component>\n  <component name=\"SharedIndexes\">\n    <attachedChunks>\n      <set>\n        <option value=\"bundled-python-sdk-fc1d50d2d915-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.24978.54\" />\n      </set>\n    </attachedChunks>\n  </component>\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\n  <component name=\"TaskManager\">\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\n      <changelist id=\"e522e9c3-cac6-47f3-9877-ef926f8c605c\" name=\"Changes\" comment=\"\" />\n      <created>1743891799161</created>\n      <option name=\"number\" value=\"Default\" />\n      <option name=\"presentableId\" value=\"Default\" />\n      <updated>1743891799161</updated>\n    </task>\n    <servers />\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision 15d40326571b95cdc817b9103a764e8691ba8442)
++++ b/.idea/workspace.xml	(date 1747409197703)
+@@ -4,12 +4,14 @@
+     <option name="autoReloadType" value="SELECTIVE" />
+   </component>
+   <component name="ChangeListManager">
+-    <list default="true" id="e522e9c3-cac6-47f3-9877-ef926f8c605c" name="Changes" comment="">
+-      <change afterPath="$PROJECT_DIR$/.idea/geriatria-langchain.iml" afterDir="false" />
+-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
++    <list default="true" id="e522e9c3-cac6-47f3-9877-ef926f8c605c" name="Changes" comment="Refact: Ajuste nome do pdf">
++      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/analise.py" beforeDir="false" afterPath="$PROJECT_DIR$/analise.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/assets/Fundamentos_de_geriatria.pdf" beforeDir="false" />
++      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/pdf_faiss_index/index.faiss" beforeDir="false" />
++      <change beforePath="$PROJECT_DIR$/pdf_faiss_index/index.pkl" beforeDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+@@ -24,11 +26,16 @@
+     </option>
+   </component>
+   <component name="Git.Settings">
++    <option name="RECENT_BRANCH_BY_REPOSITORY">
++      <map>
++        <entry key="$PROJECT_DIR$" value="master" />
++      </map>
++    </option>
+     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+   </component>
+-  <component name="ProjectColorInfo"><![CDATA[{
+-  "associatedIndex": 5
+-}]]></component>
++  <component name="ProjectColorInfo">{
++  &quot;associatedIndex&quot;: 5
++}</component>
+   <component name="ProjectId" id="2vKRUy29x9w2NtWfKjLIbEzREDw" />
+   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+     <ConfirmationsSetting value="1" id="Add" />
+@@ -39,10 +46,13 @@
+   </component>
+   <component name="PropertiesComponent"><![CDATA[{
+   "keyToString": {
++    "Python.analise.executor": "Run",
+     "Python.main.executor": "Run",
+     "RunOnceActivity.ShowReadmeOnStart": "true",
+     "RunOnceActivity.git.unshallow": "true",
+-    "git-widget-placeholder": "master"
++    "git-widget-placeholder": "feat/analise__tcc",
++    "last_opened_file_path": "/Users/caioandrade/development/personal/ia_geriatria_langchain/geriatria-langchain",
++    "settings.editor.selected.configurable": "trusted.hosts"
+   }
+ }]]></component>
+   <component name="RecentsManager">
+@@ -66,6 +76,55 @@
+       <option name="presentableId" value="Default" />
+       <updated>1743891799161</updated>
+     </task>
++    <task id="LOCAL-00001" summary="Feat: Atualização dos requirements e criação do script de analise exploratória do banco vetorial">
++      <option name="closed" value="true" />
++      <created>1743955215254</created>
++      <option name="number" value="00001" />
++      <option name="presentableId" value="LOCAL-00001" />
++      <option name="project" value="LOCAL" />
++      <updated>1743955215254</updated>
++    </task>
++    <task id="LOCAL-00002" summary="Feat: Cabeçalho adicionado ai arquivo de analise">
++      <option name="closed" value="true" />
++      <created>1743962535031</created>
++      <option name="number" value="00002" />
++      <option name="presentableId" value="LOCAL-00002" />
++      <option name="project" value="LOCAL" />
++      <updated>1743962535031</updated>
++    </task>
++    <task id="LOCAL-00003" summary="Feat: index do banco">
++      <option name="closed" value="true" />
++      <created>1744023527286</created>
++      <option name="number" value="00003" />
++      <option name="presentableId" value="LOCAL-00003" />
++      <option name="project" value="LOCAL" />
++      <updated>1744023527286</updated>
++    </task>
++    <task id="LOCAL-00004" summary="Feat: implementação da API">
++      <option name="closed" value="true" />
++      <created>1747360650306</created>
++      <option name="number" value="00004" />
++      <option name="presentableId" value="LOCAL-00004" />
++      <option name="project" value="LOCAL" />
++      <updated>1747360650306</updated>
++    </task>
++    <task id="LOCAL-00005" summary="Refact: Ajuste nome do pdf">
++      <option name="closed" value="true" />
++      <created>1747360894687</created>
++      <option name="number" value="00005" />
++      <option name="presentableId" value="LOCAL-00005" />
++      <option name="project" value="LOCAL" />
++      <updated>1747360894687</updated>
++    </task>
++    <option name="localTasksCounter" value="6" />
+     <servers />
+   </component>
++  <component name="VcsManagerConfiguration">
++    <MESSAGE value="Feat: Atualização dos requirements e criação do script de analise exploratória do banco vetorial" />
++    <MESSAGE value="Feat: Cabeçalho adicionado ai arquivo de analise" />
++    <MESSAGE value="Feat: index do banco" />
++    <MESSAGE value="Feat: implementação da API" />
++    <MESSAGE value="Refact: Ajuste nome do pdf" />
++    <option name="LAST_COMMIT_MESSAGE" value="Refact: Ajuste nome do pdf" />
++  </component>
+ </project>
+\ No newline at end of file
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"Black\">\n    <option name=\"sdkName\" value=\"Python 3.9 (geriatria-langchain)\" />\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+--- a/.idea/misc.xml	(revision 15d40326571b95cdc817b9103a764e8691ba8442)
++++ b/.idea/misc.xml	(date 1743902962146)
+@@ -3,4 +3,5 @@
+   <component name="Black">
+     <option name="sdkName" value="Python 3.9 (geriatria-langchain)" />
+   </component>
++  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.9 (geriatria-langchain)" project-jdk-type="Python SDK" />
+ </project>
+\ No newline at end of file

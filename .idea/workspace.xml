@@ -4,12 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e522e9c3-cac6-47f3-9877-ef926f8c605c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/geriatria-langchain.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="e522e9c3-cac6-47f3-9877-ef926f8c605c" name="Changes" comment="Refact: Ajuste nome do pdf">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/Fundamentos_de_geriatria.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pdf_faiss_index/index.faiss" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pdf_faiss_index/index.pkl" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,11 +25,16 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 5
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
   <component name="ProjectId" id="2vKRUy29x9w2NtWfKjLIbEzREDw" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <ConfirmationsSetting value="1" id="Add" />
@@ -37,14 +43,17 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.main.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.analise.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feat/analise__tcc&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/caioandrade/development/personal/ia_geriatria_langchain/geriatria-langchain&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;trusted.hosts&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/assets" />
@@ -66,6 +75,55 @@
       <option name="presentableId" value="Default" />
       <updated>1743891799161</updated>
     </task>
+    <task id="LOCAL-00001" summary="Feat: Atualização dos requirements e criação do script de analise exploratória do banco vetorial">
+      <option name="closed" value="true" />
+      <created>1743955215254</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1743955215254</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Feat: Cabeçalho adicionado ai arquivo de analise">
+      <option name="closed" value="true" />
+      <created>1743962535031</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1743962535031</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Feat: index do banco">
+      <option name="closed" value="true" />
+      <created>1744023527286</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1744023527286</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Feat: implementação da API">
+      <option name="closed" value="true" />
+      <created>1747360650306</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1747360650306</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Refact: Ajuste nome do pdf">
+      <option name="closed" value="true" />
+      <created>1747360894687</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1747360894687</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Feat: Atualização dos requirements e criação do script de analise exploratória do banco vetorial" />
+    <MESSAGE value="Feat: Cabeçalho adicionado ai arquivo de analise" />
+    <MESSAGE value="Feat: index do banco" />
+    <MESSAGE value="Feat: implementação da API" />
+    <MESSAGE value="Refact: Ajuste nome do pdf" />
+    <option name="LAST_COMMIT_MESSAGE" value="Refact: Ajuste nome do pdf" />
   </component>
 </project>
