@@ -7,81 +7,88 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
-from langchain_community.llms import OpenAI
+from langchain_community.llms import OpenAI   # ← já estava no seu código
 
-# Carrega variáveis de ambiente do arquivo .env
+# ------------------------------------------------------------------
+# Configuração e objetos globais
+# ------------------------------------------------------------------
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# Inicializa o aplicativo Flask, responsável por receber requisições HTTP
 app = Flask(__name__)
 
-# Define o diretório dos PDFs de origem e diretório do índice FAISS
-pdfs_dir = "assets"
+pdfs_dir   = "assets"
 faiss_path = "pdf_faiss_index"
 
+# --------- NOVO: instância única do LLM (sem RAG) ----------
+llm = OpenAI(openai_api_key=openai_api_key)
+# -----------------------------------------------------------
 
-# Função para carregar um índice vetorial já existente ou criar um novo a partir dos PDFs
 def load_or_create_faiss_index():
-    # Se já existe um índice FAISS salvo, carrega do disco
     if os.path.exists(faiss_path):
-        print("Usou atual")
+        print("Usou índice existente")
         return FAISS.load_local(
             faiss_path,
             OpenAIEmbeddings(openai_api_key=openai_api_key),
             allow_dangerous_deserialization=True,
         )
-    else:
-        print("Criou novo")
-        # Caso não exista, processa todos os PDFs da pasta 'assets'
-        pdf_files = glob.glob(os.path.join(pdfs_dir, "*.pdf"))
-        if not pdf_files:
-            raise FileNotFoundError("Nenhum arquivo PDF encontrado na pasta 'assets'.")
 
-        # 1. Carrega todos os PDFs como lista de documentos
-        docs = []
-        for pdf_file in pdf_files:
-            loader = PyPDFLoader(pdf_file)
-            docs.extend(loader.load())
+    print("Criou novo índice FAISS")
+    pdf_files = glob.glob(os.path.join(pdfs_dir, "*.pdf"))
+    if not pdf_files:
+        raise FileNotFoundError("Nenhum PDF encontrado em 'assets/'.")
 
-        # 2. Divide o texto em blocos menores (chunking)
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            length_function=len,
-            is_separator_regex=False
-        )
-        split_docs = text_splitter.split_documents(docs)
+    docs = []
+    for pdf_file in pdf_files:
+        docs.extend(PyPDFLoader(pdf_file).load())
 
-        # 3. Vetoriza os blocos usando embeddings do OpenAI
-        embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+    splitter   = RecursiveCharacterTextSplitter(
+        chunk_size=1000, chunk_overlap=200, length_function=len
+    )
+    split_docs = splitter.split_documents(docs)
 
-        # 4. Cria e salva o banco vetorial FAISS localmente
-        vectorstore = FAISS.from_documents(split_docs, embeddings)
-        vectorstore.save_local(faiss_path)
-        return vectorstore
+    embeddings  = OpenAIEmbeddings(openai_api_key=openai_api_key)
+    vectorstore = FAISS.from_documents(split_docs, embeddings)
+    vectorstore.save_local(faiss_path)
+    return vectorstore
 
 
-# Carrega ou cria o banco vetorial FAISS ao iniciar o servidor
 vectorstore = load_or_create_faiss_index()
 
-# Cria a cadeia de perguntas e respostas (RAG) conectando o modelo LLM ao retriever
+# Cadeia RAG (já existente)
 qa_chain = RetrievalQA.from_chain_type(
-    llm=OpenAI(openai_api_key=openai_api_key),
+    llm=llm,  # reaproveitamos a mesma instância
     retriever=vectorstore.as_retriever()
 )
 
-# Define o endpoint da API para receber perguntas (POST /query)
+# ------------------------------------------------------------------
+# Endpoints
+# ------------------------------------------------------------------
+
+# 1. Endpoint RAG (como você já tinha)
 @app.route("/query", methods=["POST"])
-def query():
-    data = request.json
-    question = data.get("question")  # Extrai a pergunta do corpo da requisição
+def query_rag():
+    data      = request.json or {}
+    question  = data.get("question")
     if not question:
         return jsonify({"error": "Missing 'question' in request body"}), 400
+
     answer = qa_chain.run(question)
     return jsonify({"answer": answer})
 
 
-# Inicia o servidor Flask se o script for executado diretamente
+# 2. Endpoint **SEM** RAG — usa apenas o LLM
+@app.route("/query_llm", methods=["POST"])   # ← nova rota
+def query_llm():
+    data      = request.json or {}
+    question  = data.get("question")
+    if not question:
+        return jsonify({"error": "Missing 'question' in request body"}), 400
+
+    # Chamada direta ao modelo (sem recuperação de contexto)
+    answer = llm.invoke(question)            # ou llm.predict(question) em versões mais antigas
+    return jsonify({"answer": answer})
+
+
 if __name__ == "__main__":
     app.run(debug=True)
